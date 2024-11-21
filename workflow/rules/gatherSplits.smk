@@ -92,7 +92,6 @@ def vizInputsDetailed(wildcards):
         input_dict["colorbed"] = manifest_df.at[
             wildcards.sample, f"{wildcards.hap}_colortrack"
         ]
-    # print(input_dict)
     return input_dict
 
 
@@ -102,7 +101,7 @@ def covprobInputs(wildcards):
     elif wildcards.hap == "hap2":
         bed = rules.get_gaps.output.gaps2
     else:
-        print("UNKNOWN HAP")
+        raise ValueError(f"UNKNOWN HAP: {wildcards.hap}")
     input_dict = {
         "bed": bed,
         "locs": rules.bed_convert.output.locs,

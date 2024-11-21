@@ -1,6 +1,7 @@
 # tested with Snakemake v6.7.0
 import pandas as pd
 import os
+import sys
 
 
 configfile: "config/config.yaml"
@@ -38,14 +39,7 @@ include: "rules/tagONT.smk"
 include: "rules/genImages.smk"
 
 
-# include: "rules/gatherSplits.smk"
-
-
-detailed_plot = False
-if "plot_detailed" in config.keys():
-    if config["plot_detailed"] == True:
-        print("Detailed plot mode active")
-        detailed_plot = True
+detailed_plot = config.get("plot_detailed", False)
 
 if detailed_plot:
     target = (
