@@ -2,59 +2,112 @@
 import pandas as pd
 import os
 
+
 configfile: "config/config.yaml"
+
 
 SNAKEMAKE_DIR = os.path.dirname(workflow.snakefile)
 
 
 MANIFEST = config["ONT_manifest"]
-BED = config.get('ref_bed','')
-REF = config.get('ref','')
+BED = config.get("ref_bed", "")
+REF = config.get("ref", "")
 
 
-manifest_df = pd.read_csv(MANIFEST, sep='\t', header=0, index_col='sample')
+manifest_df = pd.read_csv(MANIFEST, sep="\t", header=0, index_col="sample")
 
-if BED == '':
-  bed_df = pd.DataFrame()
-else: 
-  bed_df = pd.read_csv(BED, sep='\t', header=None, names=['contig','start','stop','gene'])
-  bed_df.set_index(['gene'], inplace=True, drop=True)
+if BED == "":
+    bed_df = pd.DataFrame()
+else:
+    bed_df = pd.read_csv(
+        BED, sep="\t", header=None, names=["contig", "start", "stop", "gene"]
+    )
+    bed_df.set_index(["gene"], inplace=True, drop=True)
+
 
 scattergather:
     split=config.get("nchunks", 10),
 
+
 wildcard_constraints:
-    hap="hap1|hap2"
+    hap="hap1|hap2",
+
 
 include: "rules/defineSUNKs.smk"
 include: "rules/tagONT.smk"
 include: "rules/genImages.smk"
-# include: "rules/gatherSplits.smk"
 
+
+# include: "rules/gatherSplits.smk"
 
 
 detailed_plot = False
 if "plot_detailed" in config.keys():
-  if config['plot_detailed'] == True:
-    print("Detailed plot mode active")
-    detailed_plot = True
+    if config["plot_detailed"] == True:
+        print("Detailed plot mode active")
+        detailed_plot = True
 
 if detailed_plot:
-  target = expand('results/pngs/gaps/{sample}/{sample}_{hap}_detailed.done', sample=manifest_df.index, hap=['hap1','hap2']),
+    target = (
+        expand(
+            "results/pngs/gaps/{sample}/{sample}_{hap}_detailed.done",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+    )
 else:
-  target = []
+    target = []
+
 
 rule all:
-  input: 
-    expand('results/{sample}/sunkpos/{hap}.sunkpos', sample=manifest_df.index, hap=['hap1','hap2']),
-    expand('results/{sample}/sunkpos/{hap}.rlen', sample=manifest_df.index, hap=['hap1','hap2']),
-    expand('results/{sample}/sunkpos/bad_sunks.txt', sample=manifest_df.index),
-    expand("results/{sample}/breaks/{hap}_splits_pos.done",sample=manifest_df.index, hap=['hap1','hap2']),
-    expand("results/{sample}/final_out/{hap}.valid.bed", sample=manifest_df.index, hap=['hap1','hap2']), 
-    expand("results/{sample}/final_out/{hap}.gaps.bed", sample=manifest_df.index, hap=['hap1','hap2']),
-    expand("results/{sample}/final_out/{hap}.gaps.slop.bed", sample=manifest_df.index, hap=['hap1','hap2']),
-    expand("results/{sample}/final_out/{hap}.gaps.covprob.tsv", sample=manifest_df.index, hap=['hap1','hap2']),
-    expand('results/pngs/gaps/{sample}/{sample}_{hap}.done', sample=manifest_df.index, hap=['hap1','hap2']),
-    [expand('results/pngs/user_bed/{sample}/{sample}_{hap}.done', sample=manifest_df.loc[~ pd.isnull(manifest_df[f'{i}_bed'])].index, hap=i) for i in ['hap1','hap2']],
-    target
-
+    input:
+        expand(
+            "results/{sample}/sunkpos/{hap}.sunkpos",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+        expand(
+            "results/{sample}/sunkpos/{hap}.rlen",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+        expand("results/{sample}/sunkpos/bad_sunks.txt", sample=manifest_df.index),
+        expand(
+            "results/{sample}/breaks/{hap}_splits_pos.done",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+        expand(
+            "results/{sample}/final_out/{hap}.valid.bed",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+        expand(
+            "results/{sample}/final_out/{hap}.gaps.bed",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+        expand(
+            "results/{sample}/final_out/{hap}.gaps.slop.bed",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+        expand(
+            "results/{sample}/final_out/{hap}.gaps.covprob.tsv",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+        expand(
+            "results/pngs/gaps/{sample}/{sample}_{hap}.done",
+            sample=manifest_df.index,
+            hap=["hap1", "hap2"],
+        ),
+        [
+            expand(
+                "results/pngs/user_bed/{sample}/{sample}_{hap}.done",
+                sample=manifest_df.loc[~pd.isnull(manifest_df[f"{i}_bed"])].index,
+                hap=i,
+            )
+            for i in ["hap1", "hap2"]
+        ],
+        target,
