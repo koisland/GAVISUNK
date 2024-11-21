@@ -1,11 +1,8 @@
 import pandas as pd
-from matplotlib import pyplot as plt, lines
+from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
-from matplotlib.patches import Circle, Wedge, Polygon, Rectangle
-import seaborn as sns
-import numpy as nptwi
+from matplotlib.patches import Polygon, Rectangle
 import matplotlib.ticker as mtick
-import argparse
 
 # print(pd.__version__)
 import os

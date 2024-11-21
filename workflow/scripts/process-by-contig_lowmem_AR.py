@@ -1,16 +1,14 @@
 #! /usr/bin/python
 import graph_tool as gt
-from graph_tool.topology import extract_largest_component
 
 import timeit
 
 from scipy.spatial.distance import pdist
 import itertools as it
 
-import pandas as pd, numpy as np
-import timeit
-
+import pandas as pd
 import numpy as np
+
 
 import argparse
 

@@ -1,10 +1,8 @@
-import pandas as pd, numpy as np
-import os
-from sympy.solvers import solve, solveset
+import pandas as pd
+from sympy.solvers import solveset
 from sympy import Symbol, Reals
 import pyranges as pr
 
-import argparse
 
 print(snakemake.input)
 
