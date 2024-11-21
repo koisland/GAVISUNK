@@ -52,7 +52,6 @@ rule covprob:
         unpack(covprobInputs),
         fai=lambda wildcards: manifest_df.at[wildcards.sample, f"{wildcards.hap}_asm"]
         + ".fai",
-        # SUNK_len = str(config['SUNK_len']),
     output:
         tsv="results/{sample}/final_out/{hap}.gaps.covprob.tsv",
     resources:
