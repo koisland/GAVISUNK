@@ -4,9 +4,9 @@ import os
 
 def splitlocs(hap_type,group_df, dirname, exten):
   for name, contig_group in group_df:
+    name = name[0]
     contig_name = name.replace("#", "_")
     output_path = f'{dirname}/{contig_name}_{hap_type}.{exten}'
-    print(output_path)
     contig_group.to_csv(output_path, header=None, index=None, sep="\t")
   return(True)
 

@@ -1,5 +1,4 @@
 #! /usr/bin/python
-import networkx as nx
 import graph_tool as gt
 from graph_tool.topology import extract_largest_component
 
@@ -8,23 +7,11 @@ import timeit
 from scipy.spatial.distance import pdist
 import itertools as it
 
-import numpy as npt
 import pandas as pd, numpy as np
-from matplotlib import (pyplot as plt,
-                        lines)
-import seaborn as sns
 import timeit
 
-from matplotlib.patches import Circle, Wedge, Polygon
-from matplotlib.collections import PatchCollection
-import matplotlib.pyplot as plt
-
-import seaborn as sns
 import numpy as np
  
-from matplotlib import (pyplot as plt,
-                        lines)
-import matplotlib.ticker as mtick
 import argparse
 
 

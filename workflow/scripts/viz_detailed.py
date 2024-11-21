@@ -285,7 +285,7 @@ for contig in contigs:
             # print("COLORBED!!!")
             patches2=[]
             for r in dm[['chrStart','chrEnd','color','chr']].query('chr==@contig & chrEnd > @xmin & chrStart < @xmax ').itertuples():
-                polygon = Polygon([[r[1],-4],[r[1],-5],[r[2],-5],[r[2],-4]], True, color=r[3],alpha=1)
+                polygon = Polygon([[r[1],-4],[r[1],-5],[r[2],-5],[r[2],-4]], closed=True, color=r[3],alpha=1)
                 patches2.append(polygon)
             p = PatchCollection(patches2, alpha=1, match_original=True)
             # print("patchlen: ",len(patches2))

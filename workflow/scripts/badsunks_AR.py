@@ -2,10 +2,10 @@
 
 import argparse
 import pandas as pd
-from matplotlib import (pyplot as plt,
-                        lines)
-import seaborn as sns
-import os
+# from matplotlib import (pyplot as plt,
+#                         lines)
+# import seaborn as sns
+# import os
 
 def main():
     parser = argparse.ArgumentParser()
@@ -22,11 +22,10 @@ def main():
 
     sunkposcat['ID2'] = sunkposcat['chrom'].astype(str) +":"+ sunkposcat['ID'].astype(str)
     kmer_counts = sunkposcat.ID2.value_counts()
-    kmer_counts2 = pd.DataFrame(kmer_counts,index=None)
+    kmer_counts2 = pd.DataFrame(kmer_counts, index=None)
     kmer_counts2.reset_index(inplace=True)
-    kmer_counts2.rename(columns={'ID2':'count','index':'ID2'},inplace=True)
 
-    kmer_counts2[['contig','ID']] =  kmer_counts2.ID2.str.split(":",1,expand=True)
+    kmer_counts2[['contig','ID']] =  kmer_counts2.ID2.str.split(":", n=1, expand=True)
 
     fai = pd.read_csv(args.fai1, sep='\t',header=None,names=['contig','length','cumlen','3','4'])
     contiglist = set(fai.contig.tolist())
@@ -35,8 +34,8 @@ def main():
 
     kmer_counts2.correct_hap.value_counts()
 
-    fig,ax = plt.subplots(figsize=(22,22))
-    g = sns.histplot(data = kmer_counts2.query('count < 150 & count > 1'), x='count',binwidth=1,hue='correct_hap')
+    # fig,ax = plt.subplots(figsize=(22,22))
+    # g = sns.histplot(data = kmer_counts2.query('count < 150 & count > 1'), x='count',binwidth=1,hue='correct_hap')
 #    plt.savefig("badsunks_hap1.png")
 
     # meancov = kmer_counts2[kmer_counts2['count'] > kmer_counts2['count'].median()/2]['count'].mode()
@@ -61,9 +60,8 @@ def main():
     kmer_counts = sunkposcat.ID2.value_counts()
     kmer_counts2 = pd.DataFrame(kmer_counts,index=None)
     kmer_counts2.reset_index(inplace=True)
-    kmer_counts2.rename(columns={'ID2':'count','index':'ID2'},inplace=True)
 
-    kmer_counts2[['contig','ID']] =  kmer_counts2.ID2.str.split(":",1,expand=True)
+    kmer_counts2[['contig','ID']] =  kmer_counts2.ID2.str.split(":", n=1,expand=True)
 
 
 
@@ -74,8 +72,8 @@ def main():
 
     kmer_counts2.correct_hap.value_counts()
 
-    fig,ax = plt.subplots(figsize=(22,22))
-    g = sns.histplot(data = kmer_counts2.query('count < 150 & count > 1'), x='count',binwidth=1,hue='correct_hap')
+    # fig,ax = plt.subplots(figsize=(22,22))
+    # g = sns.histplot(data = kmer_counts2.query('count < 150 & count > 1'), x='count',binwidth=1,hue='correct_hap')
  #   plt.savefig("badsunks_hap2.png")
 
     # meancov = kmer_counts2[kmer_counts2['count'] > kmer_counts2['count'].median()/2]['count'].mode()

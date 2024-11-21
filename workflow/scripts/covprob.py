@@ -87,7 +87,7 @@ covprobs = []
 for intsize in range(1,3500):
     cum_prob = 1
 #     counter = 0
-    for i,x in kbp_cnt.iteritems():
+    for i,x in kbp_cnt.items():
         prob = cov_prob(intsize, i, x,pn) 
         cum_prob = cum_prob * prob
     covprobs.append((intsize,1-cum_prob))
