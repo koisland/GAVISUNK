@@ -1,3 +1,20 @@
-ONT_manifest: .test/data/ont.tsv
-SUNK_len: 20
+samples:
+  AMY_pseudodip:
+    ont: ".test/AMY.ONT.fa.gz"
+    asm: ".test/AMY.fa.gz"
+    bed: ".test/data/AMY_samp.bed"
+    track_bed: ".test/data/AMY_CHM13_dupmasker_colors.bed"
+
+# ref: ""
+# ref_bed: ""
+output_dir: "results"
+benchmarks_dir: "benchmarks"
+logs_dir: "logs"
+
+define_sunks:
+  sunk_len: 20
+  mem_jellyfish: "10GB"
+  threads_jellyfish: 32
+  mem_mrsfast: "8GB"
+  threads_mrsfast: 16
 plot_detailed: True

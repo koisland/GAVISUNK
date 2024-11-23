@@ -1,44 +1,34 @@
-rule combine_asm_haps:
-    input:
-        hap1_asm=lambda wildcards: manifest_df.at[wildcards.sample, "hap1_asm"],
-        hap2_asm=lambda wildcards: manifest_df.at[wildcards.sample, "hap2_asm"],
-    output:
-        combined=temp("results/{sample}/mrsfast/ref.fa"),
-    resources:
-        mem=8,
-        load=100,
-    threads: 1
-    conda:
-        "../envs/viz.yaml"
-    log:
-        "logs/{sample}/combine_asm_haps.log",
-    shell:
-        """
-    zcat -f {input.hap1_asm} {input.hap2_asm} > {output.combined}
-    samtools faidx {output.combined}
-    """
-
-
 # Get the kmers from the assembly
 rule jellyfish_count:
     input:
-        asm=rules.combine_asm_haps.output.combined,
+        asm=lambda wc: MANIFEST[wc.sm]["asm"],
     output:
-        counts="results/{sample}/db/jellyfish.counts",
+        counts=join(OUTPUT_DIR, "jellyfish", "{sm}_sunk.counts"),
     resources:
-        mem=1,
-        load=900,
-    threads: 32
+        mem=config["define_sunks"]["mem_jellyfish"],
+    threads: config["define_sunks"]["threads_jellyfish"]
     conda:
         "../envs/viz.yaml"
     params:
-        sunk_len=config["SUNK_len"],
+        hash_size=10_000_000,
+        upper_count=1,
+        counter_len_bits=1,
+        sunk_len=config["define_sunks"]["sunk_len"],
     log:
-        "logs/{sample}/jellyfish_count.log",
+        join(LOG_DIR, "jellyfish", "{sm}_jellyfish_count.log"),
+    benchmark:
+        join(BMK_DIR, "jellyfish", "{sm}_jellyfish_count.tsv")
     shell:
         """
-    jellyfish count -m {params.sunk_len} -s 10000000 -t {threads} -C -c 1 -U 1 {input.asm} -o {output.counts}
-    """
+        jellyfish count \
+        -m {params.sunk_len} \
+        -s {params.hash_size} \
+        -t {threads} \
+        -C \
+        -c {params.counter_len_bits} \
+        -U {params.upper_count} {input.asm} \
+        -o {output.counts} 2> {log}
+        """
 
 
 # Filter to kmers seen once in the assembly i.e. SUNKs
@@ -46,87 +36,108 @@ rule define_SUNKs:
     input:
         counts=rules.jellyfish_count.output.counts,
     output:
-        db="results/{sample}/db/jellyfish.db",
-        fa="results/{sample}/db/jellyfish.fa",
+        db=join(OUTPUT_DIR, "jellyfish", "{sm}_sunk.db"),
+        fa=join(OUTPUT_DIR, "jellyfish", "{sm}_sunk.fa"),
     resources:
-        mem=1,
-        load=900,
+        mem=config["define_sunks"]["mem_jellyfish"],
     conda:
         "../envs/viz.yaml"
     log:
-        "logs/{sample}/define_SUNKs.log",
-    threads: 32
+        join(LOG_DIR, "jellyfish", "{sm}_define_sunks.log"),
+    benchmark:
+        join(BMK_DIR, "jellyfish", "{sm}_define_sunks.tsv")
+    threads: config["define_sunks"]["threads_jellyfish"]
     shell:
         """
-    jellyfish dump -c -t {input.counts}  | awk '{{print $1}}' > {output.db}
-    awk '{{ print ">"$0"\\n"$0 }}' {output.db} > {output.fa}
-    """
+        jellyfish dump -c -t {input.counts} | awk '{{print $1}}' > {output.db}
+        awk '{{ print ">"$0"\\n"$0 }}' {output.db} > {output.fa}
+        """
 
 
 # Create index of assembly for mrsfast mapping
 rule mrsfast_index:
     input:
-        asm=rules.combine_asm_haps.output.combined,
+        asm=lambda wc: MANIFEST[wc.sm]["asm"],
     output:
-        index=temp("results/{sample}/mrsfast/ref.fa.index"),
+        index=temp(join(OUTPUT_DIR, "mrsfast", "{sm}.fa.index")),
     resources:
-        mem=8,  #1.1G used
-        load=100,
-    threads: 1
+        mem=config["define_sunks"]["mem_mrsfast"],
+    params:
+        # Index with this window size.
+        window_size=14,
+    threads: config["define_sunks"]["threads_mrsfast"]
     conda:
         "../envs/viz.yaml"
     log:
-        "logs/{sample}/mrsfast_index.log",
+        join(LOG_DIR, "mrsfast", "{sm}_index.log"),
+    benchmark:
+        join(BMK_DIR, "mrsfast", "{sm}_index.tsv")
     shell:
         """
-    mrsfast --ws 14 --index {input.asm}
-    """
+        mrsfast --ws {params.window_size} --index {input.asm} 2> {log}
+        """
 
 
 # Map SUNKs back to assembly
 rule mrsfast_search:
     input:
-        ref=rules.combine_asm_haps.output.combined,
+        asm=lambda wc: MANIFEST[wc.sm]["asm"],
         index=rules.mrsfast_index.output.index,
         db=rules.define_SUNKs.output.fa,
     output:
-        sam=temp("results/{sample}/mrsfast/kmer_map.sam"),
-        bam=temp("results/{sample}/mrsfast/kmer_map.bam"),
+        sam=temp(join(OUTPUT_DIR, "mrsfast", "{sm}_sunk.sam")),
+        bam=temp(join(OUTPUT_DIR, "mrsfast", "{sm}_sunk.bam")),
     resources:
-        mem=2,  #73 G VMS
-        load=900,
-    threads: 16
+        mem=config["define_sunks"]["mem_mrsfast"],
+    params:
+        # Need perfect match.
+        err_thr=0,
+    threads: config["define_sunks"]["threads_mrsfast"]
     conda:
         "../envs/viz.yaml"
     log:
-        "logs/{sample}/mrsfast_search.log",
+        join(LOG_DIR, "mrsfast", "{sm}_search.log"),
+    benchmark:
+        join(BMK_DIR, "mrsfast", "{sm}_search.tsv")
     shell:
         """
-    mrsfast --search {input.ref} --threads {threads} --mem 16 --seq {input.db} -o {output.sam} --disable-nohits -e 0 
-    samtools sort -@ {threads} {output.sam} -o {output.bam} 
-    """
+        mrsfast \
+        --search {input.asm} \
+        --threads {threads} \
+        --mem {resources.mem} \
+        --seq {input.db} \
+        -o {output.sam} \
+        --disable-nohits \
+        -e {params.err_thr} 2> {log}
+        samtools sort -@ {threads} {output.sam} -o {output.bam} 2> {log}
+        """
 
 
 # Convert mrsfast bam file to bed file
 rule bed_convert:
     input:
-        sam=rules.mrsfast_search.output.sam,
         bam=rules.mrsfast_search.output.bam,
     output:
-        bed=temp("results/{sample}/mrsfast/kmer_map.bed"),
-        bedmerge=temp("results/{sample}/mrsfast/kmer_map.merge.bed"),
-        locs="results/{sample}/mrsfast/kmer.loc",
+        bed=temp(join(OUTPUT_DIR, "mrsfast", "{sm}_sunk.bed")),
+        bedmerge=temp(join(OUTPUT_DIR, "mrsfast", "{sm}_sunk_merge.bed")),
+        locs=join(OUTPUT_DIR, "mrsfast", "{sm}_sunk.loc"),
     resources:
         mem=16,
-        load=100,
-    threads: 2
     conda:
         "../envs/viz.yaml"
     log:
-        "logs/{sample}/bed_convert.log",
+        join(LOG_DIR, "mrsfast", "{sm}_bed_convert.log"),
+    benchmark:
+        join(BMK_DIR, "mrsfast", "{sm}_bed_convert.tsv")
     shell:
         """
-    bedtools bamtobed -i {input.bam} > {output.bed} && \
-    bedtools merge -i {output.bed} > {output.bedmerge} && \
-    bedtools intersect -a {output.bed} -b {output.bedmerge} -wo | cut -f 1,2,4,8 > {output.locs}
-    """
+        bedtools bamtobed -i {input.bam} > {output.bed} 2> {log}
+        bedtools merge -i {output.bed} > {output.bedmerge} 2> {log}
+        {{ bedtools intersect -a {output.bed} -b {output.bedmerge} -wo | \
+        cut -f 1,2,4,8 ;}} > {output.locs} 2> {log}
+        """
+
+
+rule define_sunks_all:
+    input:
+        expand(rules.bed_convert.output, sm=SAMPLES),
