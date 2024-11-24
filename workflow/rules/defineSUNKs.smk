@@ -1,7 +1,31 @@
+# Uncompress assembly
+
+
+rule get_assembly:
+    input:
+        fa=lambda wc: MANIFEST[wc.sm]["asm"],
+    output:
+        fa=temp(join(OUTPUT_DIR, "mrsfast", "{sm}.fa")),
+        fai=temp(join(OUTPUT_DIR, "mrsfast", "{sm}.fa.fai")),
+    conda:
+        "../envs/viz.yaml"
+    log:
+        join(LOG_DIR, "jellyfish", "{sm}_get_assembly.log"),
+    shell:
+        """
+        if [[ {input.fa} == *.gz ]]; then
+            zcat {input.fa} > {output.fa} 2> {log}
+        else
+            ln -s {input.fa} {output.fa} 2> {log}
+        fi
+        samtools faidx {output.fa} 2> {log}
+        """
+
+
 # Get the kmers from the assembly
 rule jellyfish_count:
     input:
-        asm=lambda wc: MANIFEST[wc.sm]["asm"],
+        asm=rules.get_assembly.output.fa,
     output:
         counts=join(OUTPUT_DIR, "jellyfish", "{sm}_sunk.counts"),
     resources:
@@ -57,7 +81,7 @@ rule define_SUNKs:
 # Create index of assembly for mrsfast mapping
 rule mrsfast_index:
     input:
-        asm=lambda wc: MANIFEST[wc.sm]["asm"],
+        asm=rules.get_assembly.output.fa,
     output:
         index=temp(join(OUTPUT_DIR, "mrsfast", "{sm}.fa.index")),
     resources:
@@ -74,14 +98,14 @@ rule mrsfast_index:
         join(BMK_DIR, "mrsfast", "{sm}_index.tsv")
     shell:
         """
-        mrsfast --ws {params.window_size} --index {input.asm} 2> {log}
+        mrsfast --ws {params.window_size} --index {input.asm} &> {log}
         """
 
 
 # Map SUNKs back to assembly
 rule mrsfast_search:
     input:
-        asm=lambda wc: MANIFEST[wc.sm]["asm"],
+        asm=rules.get_assembly.output.fa,
         index=rules.mrsfast_index.output.index,
         db=rules.define_SUNKs.output.fa,
     output:
@@ -108,7 +132,7 @@ rule mrsfast_search:
         --seq {input.db} \
         -o {output.sam} \
         --disable-nohits \
-        -e {params.err_thr} 2> {log}
+        -e {params.err_thr} &> {log}
         samtools sort -@ {threads} {output.sam} -o {output.bam} 2> {log}
         """
 

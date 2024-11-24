@@ -10,93 +10,82 @@ MANIFEST = config["samples"]
 SAMPLES = MANIFEST.keys()
 BED = config.get("ref_bed", "")
 REF = config.get("ref", "")
-
-
 OUTPUT_DIR = config.get("output_dir", "results")
 BMK_DIR = config.get("benchmarks_dir", "benchmarks")
 LOG_DIR = config.get("logs_dir", "logs")
 
-# if BED == "":
-#     bed_df = pd.DataFrame()
-# else:
-#     bed_df = pd.read_csv(
-#         BED, sep="\t", header=None, names=["contig", "start", "stop", "gene"]
-#     )
-#     bed_df.set_index(["gene"], inplace=True, drop=True)
+
+wildcard_constraints:
+    sm="|".join(SAMPLES),
 
 
 include: "rules/defineSUNKs.smk"
+include: "rules/tagONT.smk"
+include: "rules/validateSUNKs.smk"
 
 
-# include: "rules/tagONT.smk"
 # include: "rules/genImages.smk"
 
 
-outputs = [rules.define_sunks_all.input]
-
-detailed_plot = config.get("plot_detailed", False)
-
-if detailed_plot:
-    pass
-    # target = (
-    #     expand(
-    #         "results/pngs/gaps/{sample}/{sample}_{hap}_detailed.done",
-    #         sample=manifest_df.index,
-    #         hap=["hap1", "hap2"],
-    #     ),
-    # )
+outputs = [
+    rules.define_sunks_all.input,
+    rules.tag_ont_all.input,
+    rules.validate_sunks_all.input,
+]
 
 
 rule all:
     input:
         outputs,
-        # expand(
-        #     "results/{sample}/sunkpos/{hap}.sunkpos",
-        #     sample=manifest_df.index,
-        #     hap=["hap1", "hap2"],
-        # ),
-        # expand(
-        #     "results/{sample}/sunkpos/{hap}.rlen",
-        #     sample=manifest_df.index,
-        #     hap=["hap1", "hap2"],
-        # ),
-        # expand("results/{sample}/sunkpos/bad_sunks.txt", sample=manifest_df.index),
-        # expand(
-        #     "results/{sample}/breaks/{hap}_splits_pos.done",
-        #     sample=manifest_df.index,
-        #     hap=["hap1", "hap2"],
-        # ),
-        # expand(
-        #     "results/{sample}/final_out/{hap}.valid.bed",
-        #     sample=manifest_df.index,
-        #     hap=["hap1", "hap2"],
-        # ),
-        # expand(
-        #     "results/{sample}/final_out/{hap}.gaps.bed",
-        #     sample=manifest_df.index,
-        #     hap=["hap1", "hap2"],
-        # ),
-        # expand(
-        #     "results/{sample}/final_out/{hap}.gaps.slop.bed",
-        #     sample=manifest_df.index,
-        #     hap=["hap1", "hap2"],
-        # ),
-        # expand(
-        #     "results/{sample}/final_out/{hap}.gaps.covprob.tsv",
-        #     sample=manifest_df.index,
-        #     hap=["hap1", "hap2"],
-        # ),
-        # expand(
-        #     "results/pngs/gaps/{sample}/{sample}_{hap}.done",
-        #     sample=manifest_df.index,
-        #     hap=["hap1", "hap2"],
-        # ),
-        # [
-        #     expand(
-        #         "results/pngs/user_bed/{sample}/{sample}_{hap}.done",
-        #         sample=manifest_df.loc[~pd.isnull(manifest_df[f"{i}_bed"])].index,
-        #         hap=i,
-        #     )
-        #     for i in ["hap1", "hap2"]
-        # ],
-        # target,
+
+
+# expand(
+#     "results/{sample}/sunkpos/{hap}.sunkpos",
+#     sample=manifest_df.index,
+#     hap=["hap1", "hap2"],
+# ),
+# expand(
+#     "results/{sample}/sunkpos/{hap}.rlen",
+#     sample=manifest_df.index,
+#     hap=["hap1", "hap2"],
+# ),
+# expand("results/{sample}/sunkpos/bad_sunks.txt", sample=manifest_df.index),
+# expand(
+#     "results/{sample}/breaks/{hap}_splits_pos.done",
+#     sample=manifest_df.index,
+#     hap=["hap1", "hap2"],
+# ),
+# expand(
+#     "results/{sample}/final_out/{hap}.valid.bed",
+#     sample=manifest_df.index,
+#     hap=["hap1", "hap2"],
+# ),
+# expand(
+#     "results/{sample}/final_out/{hap}.gaps.bed",
+#     sample=manifest_df.index,
+#     hap=["hap1", "hap2"],
+# ),
+# expand(
+#     "results/{sample}/final_out/{hap}.gaps.slop.bed",
+#     sample=manifest_df.index,
+#     hap=["hap1", "hap2"],
+# ),
+# expand(
+#     "results/{sample}/final_out/{hap}.gaps.covprob.tsv",
+#     sample=manifest_df.index,
+#     hap=["hap1", "hap2"],
+# ),
+# expand(
+#     "results/pngs/gaps/{sample}/{sample}_{hap}.done",
+#     sample=manifest_df.index,
+#     hap=["hap1", "hap2"],
+# ),
+# [
+#     expand(
+#         "results/pngs/user_bed/{sample}/{sample}_{hap}.done",
+#         sample=manifest_df.loc[~pd.isnull(manifest_df[f"{i}_bed"])].index,
+#         hap=i,
+#     )
+#     for i in ["hap1", "hap2"]
+# ],
+# target,

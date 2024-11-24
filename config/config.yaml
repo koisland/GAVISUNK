@@ -17,4 +17,8 @@ define_sunks:
   threads_jellyfish: 32
   mem_mrsfast: "8GB"
   threads_mrsfast: 16
+
+tag_ont:
+  nchunks: 10
+
 plot_detailed: True

@@ -1,18 +1,6 @@
 include: "gatherSplits.smk"
 
 
-rule confirm_out:
-    input:
-        final_bed=expand(
-            "results/{sample}/final_out/{hap}.valid.bed",
-            sample=manifest_df.index,
-            hap=["hap1", "hap2"],
-        ),
-        interout=getInterOut,
-    output:
-        flag=touch("results/{sample}/inter_outs/{hap}.done"),
-
-
 rule viz_contigs_detailed:
     input:
         unpack(vizInputsDetailed),
@@ -50,8 +38,8 @@ rule viz_contigs:
 rule covprob:
     input:
         unpack(covprobInputs),
-        fai=lambda wildcards: manifest_df.at[wildcards.sample, f"{wildcards.hap}_asm"]
-        + ".fai",
+        script="workflow/scripts/covprob.py",
+        fai=rules.get_assembly.output.fai,
     output:
         tsv="results/{sample}/final_out/{hap}.gaps.covprob.tsv",
     resources:
@@ -64,5 +52,35 @@ rule covprob:
         "../envs/viz.yaml"
     log:
         "logs/{sample}_{hap}_covprob.log",
-    script:
-        "../scripts/covprob.py"
+    shell:
+        """
+        python {input.script}
+        --fai {input.fai}
+        --bed
+        --locs
+        --rlen
+        --kmer_len
+        --outfile
+        """
+
+
+# if BED == "":
+#     bed_df = pd.DataFrame()
+# else:
+#     bed_df = pd.read_csv(
+#         BED, sep="\t", header=None, names=["contig", "start", "stop", "gene"]
+#     )
+#     bed_df.set_index(["gene"], inplace=True, drop=True)
+
+
+detailed_plot = config.get("plot_detailed", False)
+
+if detailed_plot:
+    pass
+    # target = (
+    #     expand(
+    #         "results/pngs/gaps/{sample}/{sample}_{hap}_detailed.done",
+    #         sample=manifest_df.index,
+    #         hap=["hap1", "hap2"],
+    #     ),
+    # )

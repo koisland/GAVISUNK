@@ -1,28 +1,21 @@
-def gatherAsmBeds(wildcards):
-    CONTIGS = glob_wildcards(
-        "results/{sample}/breaks/{contigs}_{hap}.sunkpos".format(
-            sample=wildcards.sample, hap=wildcards.hap, contigs="{contigs}"
-        )
-    ).contigs
+def gatherAsmBeds(wc):
+    breaks_dir = checkpoints.split_sunkpos.get(**wc).output[0]
+    contigs = glob_wildcards(join(breaks_dir, "{contig}.sunkpos")).contig
     return expand(
         rules.process_by_contig.output.bed,
-        sample=wildcards.sample,
-        hap=wildcards.hap,
-        contigs=CONTIGS,
+        sm=wc.sm,
+        contig=contigs,
     )
 
 
-def getSunkLocs(wildcards):
-    CONTIGS = glob_wildcards(
-        "results/{sample}/breaks/{contigs}_{hap}.loc".format(
-            sample=wildcards.sample, hap=wildcards.hap, contigs="{contigs}"
-        )
-    ).contigs
+def getSunkLocs(wc):
+    breaks_dir = checkpoints.split_sunkpos.get(**wc).output[0]
+    contigs = glob_wildcards(join(breaks_dir, "{contig}.loc")).contig
     return expand(
         "results/{sample}/breaks/{contigs}_{hap}.loc",
-        sample=wildcards.sample,
+        sm=wc.sm,
         hap=wildcards.hap,
-        contigs=CONTIGS,
+        contigs=contigs,
     )
 
 
