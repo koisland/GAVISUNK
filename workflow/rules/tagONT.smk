@@ -140,6 +140,11 @@ rule bad_sunks:
   resources:
     mem=10,
     load=100
+  params:
+    # hap1 and hap2 coverage.
+    # TODO: Can be calculated
+    cov_h1=lambda wildcards: f"--cov1 {manifest_df.at[wildcards.sample, 'hap1_cov']}" if manifest_df.at[wildcards.sample, "hap1_cov"] else "",
+    cov_h2=lambda wildcards: f"--cov2 {manifest_df.at[wildcards.sample, 'hap2_cov']}" if manifest_df.at[wildcards.sample, "hap2_cov"] else "",
   threads: 1
   conda:
     "../envs/viz.yaml"
@@ -147,7 +152,7 @@ rule bad_sunks:
     "logs/{sample}/bad_sunks.log"
   shell:
     """
-    python workflow/scripts/badsunks_AR.py {input.hap1_fai} {input.hap2_fai} {input.hap1_sunkpos} {input.hap2_sunkpos} {output.badsunks}
+    python workflow/scripts/badsunks_AR.py {input.hap1_fai} {input.hap2_fai} {input.hap1_sunkpos} {input.hap2_sunkpos} {output.badsunks} {params.cov_h1} {params.cov_h2}
     """
 
 checkpoint split_sunkpos:

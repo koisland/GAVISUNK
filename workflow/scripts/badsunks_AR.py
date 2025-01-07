@@ -1,5 +1,5 @@
 #! /usr/bin/python
-
+import sys
 import argparse
 import pandas as pd
 # from matplotlib import (pyplot as plt,
@@ -15,6 +15,8 @@ def main():
     parser.add_argument("sunkpos1", help=".sunkpos file of SUNK locations on hap1 ONT reads")
     parser.add_argument("sunkpos2", help=".sunkpos file of SUNK locations on hap2 ONT reads")
     parser.add_argument("outpath", help="output file")
+    parser.add_argument("--cov1", type=int, help="Total read coverage for haplotype 1. If not provided, use median.", default=None)
+    parser.add_argument("--cov2", type=int, help="Total read coverage for haplotype 2. If not provided, use median.", default=None)
     args = parser.parse_args()
 
     sunkposcat = pd.read_csv(args.sunkpos1,sep="\t",header=None,names=['rname','pos','chrom','start','ID'],dtype={'rname':'string','pos':'uint32','chrom':'category','start':'uint32','ID':'uint32'})# 
@@ -36,19 +38,23 @@ def main():
 
     # fig,ax = plt.subplots(figsize=(22,22))
     # g = sns.histplot(data = kmer_counts2.query('count < 150 & count > 1'), x='count',binwidth=1,hue='correct_hap')
-#    plt.savefig("badsunks_hap1.png")
+    # plt.savefig("badsunks_hap1.png")
 
     # meancov = kmer_counts2[kmer_counts2['count'] > kmer_counts2['count'].median()/2]['count'].mode()
-    meancov = kmer_counts2.query("correct_hap")['count'].mode().values[0]
-    print("mean coverage", meancov)
+    if args.cov1:
+        meancov = args.cov1
+    else:
+        meancov = kmer_counts2.loc[kmer_counts2['count'] > 2].query("correct_hap")['count'].median()
 
-    limit = meancov + (meancov)**0.5*4 #4 SDs above mean (though apparent mean is depressed by seq accuracy)
+    print("mean coverage", meancov, file=sys.stderr)
+
+    limit = meancov + ((meancov)**0.5) * 4 # 4 SDs above mean (though apparent mean is depressed by seq accuracy)
 
     badsunks1a = set(kmer_counts2.query("correct_hap").query("(count > @limit) or (count < 2)")['ID2'])
-    print(len(badsunks1a))
+    print(len(badsunks1a), file=sys.stderr)
 
     badsunks1b = set(kmer_counts2.query("not correct_hap").query("(count > @limit)")['ID2'])
-    print(len(badsunks1b))
+    print(len(badsunks1b), file=sys.stderr)
 
 
     # sunkposfile = args.sunkpos
@@ -74,26 +80,29 @@ def main():
 
     # fig,ax = plt.subplots(figsize=(22,22))
     # g = sns.histplot(data = kmer_counts2.query('count < 150 & count > 1'), x='count',binwidth=1,hue='correct_hap')
- #   plt.savefig("badsunks_hap2.png")
+    # plt.savefig("badsunks_hap2.png")
 
     # meancov = kmer_counts2[kmer_counts2['count'] > kmer_counts2['count'].median()/2]['count'].mode()
-    meancov = kmer_counts2.query("correct_hap")['count'].mode().values[0]
-    print("mean coverage", meancov)
+    if args.cov2:
+        meancov = args.cov2
+    else:
+        meancov = kmer_counts2.loc[kmer_counts2['count'] > 2].query("correct_hap")['count'].median()
+    print("mean coverage", meancov, file=sys.stderr)
 
 
     limit = meancov + (meancov)**0.5*4 #4 SDs above mean (though apparent mean is depressed by seq accuracy)
 
 
     badsunks2a = set(kmer_counts2.query("correct_hap").query("(count > @limit) or (count < 2)")['ID2'])
-    print(len(badsunks2a))
+    print(len(badsunks2a), file=sys.stderr)
 
 
     badsunks2b = set(kmer_counts2.query("not correct_hap").query("(count > @limit)")['ID2'])
-    print(len(badsunks2b))
+    print(len(badsunks2b), file=sys.stderr)
 
 
     badsunks_all = badsunks1a |badsunks1b | badsunks2a | badsunks2b
-    print(len(badsunks_all))
+    print(len(badsunks_all), file=sys.stderr)
 
     outfile = open(args.outpath, "w")
     for element in badsunks_all:
