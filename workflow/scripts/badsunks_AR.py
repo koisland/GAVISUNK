@@ -15,8 +15,8 @@ def main():
     parser.add_argument("sunkpos1", help=".sunkpos file of SUNK locations on hap1 ONT reads")
     parser.add_argument("sunkpos2", help=".sunkpos file of SUNK locations on hap2 ONT reads")
     parser.add_argument("outpath", help="output file")
-    parser.add_argument("--cov1", type=int, help="Total read coverage for haplotype 1. If not provided, use median.", default=None)
-    parser.add_argument("--cov2", type=int, help="Total read coverage for haplotype 2. If not provided, use median.", default=None)
+    parser.add_argument("--cov1", type=float, help="Total read coverage for haplotype 1. If not provided, use median.", default=None)
+    parser.add_argument("--cov2", type=float, help="Total read coverage for haplotype 2. If not provided, use median.", default=None)
     args = parser.parse_args()
 
     sunkposcat = pd.read_csv(args.sunkpos1,sep="\t",header=None,names=['rname','pos','chrom','start','ID'],dtype={'rname':'string','pos':'uint32','chrom':'category','start':'uint32','ID':'uint32'})# 
