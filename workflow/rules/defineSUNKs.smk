@@ -1,27 +1,7 @@
-rule combine_asm_haps:
-  input:
-    hap1_asm = lambda wildcards: manifest_df.at[wildcards.sample, "hap1_asm"],
-    hap2_asm = lambda wildcards: manifest_df.at[wildcards.sample, "hap2_asm"]
-  output:
-    combined = temp("results/{sample}/mrsfast/ref.fa")
-  resources:
-    mem = 8,
-    load = 100
-  threads: 1
-  conda:
-    "../envs/viz.yaml"
-  log:
-    "logs/{sample}/combine_asm_haps.log"
-  shell:
-    """
-    zcat -f {input.hap1_asm} {input.hap2_asm} > {output.combined}
-    samtools faidx {output.combined}
-    """
-
 #Get the kmers from the assembly
 rule jellyfish_count:
   input:
-    asm = rules.combine_asm_haps.output.combined,
+    asm = lambda wildcards: manifest_df.at[wildcards.sample, "asm"],
   output:
     counts = "results/{sample}/db/jellyfish.counts"
   resources:
@@ -63,8 +43,9 @@ rule define_SUNKs:
 #Create index of assembly for mrsfast mapping
 rule mrsfast_index:
   input:
-    asm = rules.combine_asm_haps.output.combined
+    asm = lambda wildcards: manifest_df.at[wildcards.sample, "asm"]
   output:
+    asm = temp("results/{sample}/mrsfast/ref.fa"),
     index = temp("results/{sample}/mrsfast/ref.fa.index"),
   resources:
     mem=8, #1.1G used
@@ -76,13 +57,14 @@ rule mrsfast_index:
     "logs/{sample}/mrsfast_index.log"    
   shell:
     """
-    mrsfast --ws 14 --index {input.asm}
+    cp {input.asm} {output.asm}
+    mrsfast --ws 14 --index {output.asm}
     """
 
 #Map SUNKs back to assembly
 rule mrsfast_search:
   input:
-    ref = rules.combine_asm_haps.output.combined,
+    ref = rules.mrsfast_index.output.asm,
     index = rules.mrsfast_index.output.index,
     db = rules.define_SUNKs.output.fa
   output:

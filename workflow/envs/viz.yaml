@@ -20,6 +20,7 @@ dependencies:
   - samtools=1.15.1
   - bedtools=2.30.0
   - seqtk
+  - seqkit
   - mrsfast=3.4.2
   - pyranges
   - ncls>=0.0.64

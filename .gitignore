@@ -130,7 +130,14 @@ dmypy.json
 
 # Snakemake
 .snakemake/
-benchmarks/
+benchmarks*/
 logs/
-results/
-temp/
+results*/
+temp*/
+asm/
+bed
+fai
+reads
+SG*
+done/
+ignore/

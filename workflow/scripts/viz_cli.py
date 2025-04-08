@@ -1,61 +1,20 @@
 import pandas as pd
-from matplotlib import (pyplot as plt,
-                        lines)
+from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
-from matplotlib.patches import Circle, Wedge, Polygon, Rectangle
-import seaborn as sns
-import numpy as nptwi
+from matplotlib.patches import Polygon, Rectangle
 import matplotlib.ticker as mtick
 import argparse
-#print(pd.__version__)
 import os
 from ncls import NCLS
-
-print(snakemake.input)
-
-runmode=snakemake.wildcards.runmode
-opt_keys = list(snakemake.input.keys())
-
-regbedfile = snakemake.input.bed
-if os.stat(regbedfile).st_size == 0:
-    print("empty gap file")
-    exit()
-
-bedreg1 = pd.read_csv(regbedfile, delimiter="\t",encoding='utf-8',header=None)
-header = ['chrom','start','end']
-bedreg1.columns = header + [''] * (len(bedreg1.columns) - len(header))  
-
-lendf = pd.read_csv(snakemake.input.rlen,sep="\t",header=None,names=['rname','len'],dtype={'rname':'string','len':'uint32'})
-lendf.drop_duplicates(inplace=True)
-lendf.set_index("rname",drop=True,inplace=True)
+from concurrent.futures import ProcessPoolExecutor
 
 
-bedreg1['chrom'].value_counts()
-contigs = list(bedreg1['chrom'].value_counts().index)
-print(len(contigs))
-
-
-
-if 'colorbed' in opt_keys:
-    dm = pd.read_csv(snakemake.input.colorbed, delim_whitespace=True, names=['chr','chrStart','chrEnd','color'], header=None,dtype = {'chr':'string','chrStart':'int','chrEnd':'int','color':'string'})
-    dm = dm[dm.chrStart >= 0]
-    dm["y"] = 1
-    dm["func"] = ""
-
-outdir = os.path.dirname(snakemake.output.flag)
-output_sunks_fh = open(f"{outdir}/{snakemake.wildcards.sample}_{snakemake.wildcards.hap}_sunks.txt", "wt")
-
-for contig in contigs:
-
+def plot_contig(contig, args):
     cont2 = contig.replace("#","_")
     print(contig)
     bedreg= bedreg1.query('chrom == @contig')
 
-    #print(type(snakemake.input.interout))
-    #my_str=os.path.dirname(snakemake.input.interout)
-    #print(my_str)
-
-    try: outputsdf= pd.read_csv(os.path.dirname(snakemake.input.interout) + "/" + cont2 + "_" + snakemake.wildcards.hap + ".tsv" ,sep="\t",names=['ID','rname'],dtype = {'ID':'int','rname':'string'})
+    try: outputsdf= pd.read_csv(args.rgraph_dir + "/" + cont2 + "_" + args.haplotype + ".tsv" ,sep="\t",names=['ID','rname'],dtype = {'ID':'int','rname':'string'})
     except:
         print("outputsdf not found for", contig)
 
@@ -65,12 +24,11 @@ for contig in contigs:
         print("NO READS FOR", contig)
 
 
-    kmermergefile = os.path.dirname(snakemake.input.pos_locs) +"/"+ cont2 + "_" + snakemake.wildcards.hap + ".loc"
+    kmermergefile = args.rsplitsunk_dir +"/"+ cont2 + "_" + args.haplotype + ".loc"
     kmermerge = pd.read_csv(kmermergefile,sep="\t",header=None,names=['chrom','loc','kmer','ID'])# this could be split too
     kmermerge = kmermerge.drop_duplicates(subset='kmer')
-    plotdir = os.path.dirname(snakemake.output.flag) + "/"
-    #print(plotdir)
-    sunkposfile = os.path.dirname(snakemake.input.pos_locs)+"/"+ cont2 + "_" + snakemake.wildcards.hap + ".sunkpos"
+
+    sunkposfile = args.rsplitsunk_dir+"/"+ cont2 + "_" + args.haplotype + ".sunkpos"
     sunkposcat = pd.read_csv(sunkposfile,sep="\t",header=None,names=['rname','pos','chrom','start','ID'],dtype={'rname':'string','pos':'int64','chrom':'category','start':'int64','ID':'int64'})
 
     kmermerge['ID2'] = kmermerge['chrom'].astype(str) +":"+ kmermerge['ID'].astype(str)
@@ -225,7 +183,7 @@ for contig in contigs:
 
         never_seen3 = [x for x in never_seen2 if not ((x<constart) | (x>conend))]
 
-        if 'colorbed' in opt_keys:
+        if args.colorbed:
             patches2=[]
             for r in dm[['chrStart','chrEnd','color','chr']].query('chr==@contig & chrEnd > @xmin & chrStart < @xmax ').itertuples():
                 polygon = Polygon([[r[1],-4],[r[1],-5],[r[2],-5],[r[2],-4]], closed=True, color=r[3],alpha=1)
@@ -242,14 +200,72 @@ for contig in contigs:
         ax.set_ylabel("ONT Read Depth")
         ax.set_xlabel("Contig coordinate")
         plt.rcParams['svg.fonttype'] = 'none'
-        print(plotdir + "/" + snakemake.wildcards.sample +"_" + snakemake.wildcards.hap + "_" +cont2+"_"+str(regstart)+"_"+str(regend)+".svg")
-        plt.savefig(plotdir + "/" + snakemake.wildcards.sample +"_" + snakemake.wildcards.hap + "_" +cont2+"_"+str(regstart)+"_"+str(regend)+".svg",format="svg",pad_inches=0,bbox_inches='tight')
-        plt.savefig(plotdir + "/" + snakemake.wildcards.sample +"_" + snakemake.wildcards.hap + "_" +cont2+"_"+str(regstart)+"_"+str(regend)+".png",pad_inches=0,bbox_inches='tight',dpi=300)
-        plt.savefig(plotdir + "/" + snakemake.wildcards.sample +"_" + snakemake.wildcards.hap + "_" +cont2+"_"+str(regstart)+"_"+str(regend)+".pdf",pad_inches=0,bbox_inches='tight')
+        print(outdir + "/" + args.sample +"_" + args.haplotype + "_" +cont2+"_"+str(regstart)+"_"+str(regend)+".svg")
+        plt.savefig(outdir + "/" + args.sample +"_" + args.haplotype + "_" +cont2+"_"+str(regstart)+"_"+str(regend)+".svg",format="svg",pad_inches=0,bbox_inches='tight')
+        plt.savefig(outdir + "/" + args.sample +"_" + args.haplotype + "_" +cont2+"_"+str(regstart)+"_"+str(regend)+".png",pad_inches=0,bbox_inches='tight',dpi=300)
+        plt.savefig(outdir + "/" + args.sample +"_" + args.haplotype + "_" +cont2+"_"+str(regstart)+"_"+str(regend)+".pdf",pad_inches=0,bbox_inches='tight')
         plt.close()
         print("Plotting complete for " +contig+"_"+str(regstart)+"_"+str(regend))
 
+        output_sunks_fh = open(f"{outdir}/{contig}_sunks.txt", "wt")
         for kmer in kmerlist:
             print(kmer, file=output_sunks_fh)
+        output_sunks_fh.close()
 
-output_sunks_fh.close()
+ap = argparse.ArgumentParser()
+ap.add_argument("--regbedfile",required=True, type=str, help="Region bedfile to evaluate.")
+ap.add_argument("--runmode", required=True, type=str, choices=["gap", "user_bed"])
+ap.add_argument("--rsplitsunk_dir", required=True, type=str, help="Read sunks dir split by contig. Expects {read}_{hap}.loc and {read}_{hap}.sunkpos")
+ap.add_argument("--rgraph_dir", required=True, type=str, help="Read graph dir. Expects {read}_{hap}.tsv")
+ap.add_argument("--rlen", required=True, type=str, help="Read lengths by haplotype.")
+ap.add_argument("--colorbed", default=None, help="Optional color bed file.")
+ap.add_argument("--sample", required=True)
+ap.add_argument("--haplotype", required=True)
+ap.add_argument("--outdir", required=True, help="Output directory.")
+ap.add_argument("--processes", type=int, default=4, help="Number of proceses to spawn.")
+args = ap.parse_args()
+
+runmode=args.runmode
+
+regbedfile = args.regbedfile
+if os.stat(regbedfile).st_size == 0:
+    print("empty gap file")
+    exit()
+
+bedreg1 = pd.read_csv(regbedfile, delimiter="\t",encoding='utf-8',header=None)
+header = ['chrom','start','end']
+bedreg1.columns = header + [''] * (len(bedreg1.columns) - len(header))  
+
+lendf = pd.read_csv(args.rlen,sep="\t",header=None,names=['rname','len'],dtype={'rname':'string','len':'uint32'})
+lendf.drop_duplicates(inplace=True)
+lendf.set_index("rname",drop=True,inplace=True)
+
+
+bedreg1['chrom'].value_counts()
+contigs = list(bedreg1['chrom'].value_counts().index)
+print(len(contigs))
+
+if args.colorbed:
+    dm = pd.read_csv(args.colorbed, delim_whitespace=True, names=['chr','chrStart','chrEnd','color'], header=None,dtype = {'chr':'string','chrStart':'int','chrEnd':'int','color':'string'})
+    dm = dm[dm.chrStart >= 0]
+    dm["y"] = 1
+    dm["func"] = ""
+
+outdir = args.outdir
+os.makedirs(outdir, exist_ok=True)
+
+
+with ProcessPoolExecutor(max_workers=args.processes) as pool:
+    pool.map(
+        plot_contig,
+        *zip(
+            *[
+                (
+                    contig,
+                    args
+                )
+                for contig in contigs
+            ]
+        ),    
+    )
+

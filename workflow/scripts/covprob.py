@@ -127,7 +127,10 @@ for x in breaks.df.itertuples():
 
 df1 = breaks.df
 df1['max_gap'] = max_gaps
-df1['covprob'] = df1['max_gap'].apply(lambda x: covprobsdict[int(x/1000)] )
+try:
+    df1['covprob'] = df1['max_gap'].apply(lambda x: covprobsdict[int(x/1000)] )
+except KeyError:
+    pass
 # df1.sort_values(by='covprob').head(25)
 
 # df1.drop(columns='index').to_csv(snakemake.output.tsv,index=False,sep="\t")

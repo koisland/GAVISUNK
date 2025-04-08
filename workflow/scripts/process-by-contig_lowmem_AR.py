@@ -186,7 +186,7 @@ def main():
         end=timeit.default_timer()
         times.append(end-start)
 
-    if len(outputs) == 0:
+    if len(outputs) < 2:
       pd.DataFrame(list([contig])).to_csv(ofile,header=False,sep="\t",index=False)
       exit()
     else: 
@@ -206,8 +206,14 @@ def main():
     idarray = pd.DataFrame(outputsdf.groupby("rname").apply(lambda g: list(it.combinations(g['ID'],2)))).explode([0])
     end = timeit.default_timer()
     graphtimes.append(end)
+    # Remove null id combination.
+    idarray.dropna(inplace=True)
     idarray.rename(columns={0:'IDs',},inplace=True)
-    idarray[['ID', 'ID2']] = pd.DataFrame(idarray['IDs'].tolist(), index=idarray.index)
+    try:
+        idarray[['ID', 'ID2']] = pd.DataFrame(idarray['IDs'].tolist(), index=idarray.index)
+    except ValueError:
+        pd.DataFrame(list([contig])).to_csv(ofile,header=False,sep="\t",index=False)
+        exit()
     graphtimes=[]
     end = timeit.default_timer()
     graphtimes.append(end)

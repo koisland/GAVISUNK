@@ -1,5 +1,6 @@
 include: "gatherSplits.smk"
 
+
 rule split_ONT: # accept FOFN
   input:
     reads=lambda wildcards: manifest_df.at[wildcards.sample,f"{wildcards.hap}_ONT"]
@@ -17,29 +18,6 @@ rule split_ONT: # accept FOFN
     """
     cat {input.reads} | seqtk seq -F '#' | rustybam fastq-split {output.reads}
     """
-
-
-rule SUNK_annot:
-    input:
-        bin="workflow/scripts/kmerpos_annot3",
-        locs=rules.bed_convert.output.locs,
-        db=rules.define_SUNKs.output.db,
-        ONT = "temp/{sample}/reads/{hap}_{scatteritem}.fq.gz",
-    output:
-        sunk_pos="results/{sample}/sunkpos/{hap}_{scatteritem}.sunkpos.SUNK_annot",
-    resources:
-        mem="150GB",
-    threads: 10
-    conda:
-        "../envs/viz.yaml"
-    log:
-        "logs/{sample}/{hap}_{scatteritem}_SUNK_annot.log",
-    benchmark:
-        "benchmarks/{sample}/{hap}_{scatteritem}_SUNK_annot.tsv"  
-    shell:
-        """
-        {input.bin} {input.ONT} {input.db} {input.locs} {output.sunk_pos} 2> {log}
-        """
 
 
 rule determine_best_read_ctg:
@@ -77,7 +55,7 @@ rule determine_best_read_ctg:
 
 rule combine_ont_nofilt:
   input:
-    gather_ONT_pos = gather.split("results/{{sample}}/sunkpos/{{hap}}_{scatteritem}.sunkpos.SUNK_annot"),
+    gather_ONT_pos = gather.split("results/{{sample}}/sunkpos/{{hap}}_{scatteritem}.sunkpos"),
   output:
     ONT_pos = 'results/{sample}/sunkpos/{hap}_detailed.sunkpos',
   resources:
@@ -111,10 +89,9 @@ rule read_lengths:
     workflow/scripts/rlen {input.ONT} {output}
     """
 
-
 rule diag_filter_final:
   input:
-    ONT_pos = rules.SUNK_annot.output.sunk_pos,
+    ONT_pos = rules.determine_best_read_ctg.output.sunk_pos,
     ONT_pos_diag = rules.determine_best_read_ctg.output.pair,
   output:
     ONT_pos_diag_final = temp('results/{sample}/sunkpos/{hap}_{scatteritem}_diag2.sunkpos')
